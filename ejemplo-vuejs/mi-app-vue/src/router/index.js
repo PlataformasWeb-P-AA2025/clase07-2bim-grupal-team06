@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "../views/HomeView.vue";
-import Login from "../views/Login.vue"; // Tu nuevo componente de login
-import EstudiantesList from "../views/EstudiantesList.vue"; // Tu nuevo componente de lista de estudiantes
-import EstudianteDetail from "../views/EstudianteDetail.vue"; // ¡Importa el nuevo componente!
+import Login from "../views/Login.vue";
+import EstudiantesList from "../views/EstudiantesList.vue";
+import EstudianteDetail from "../views/EstudianteDetail.vue";
+import EstudianteEdit from "../views/EstudianteEdit.vue";
 
 const routes = [
   {
@@ -19,13 +20,20 @@ const routes = [
     path: "/estudiantes",
     name: "EstudiantesList",
     component: EstudiantesList,
-    meta: { requiresAuth: true }, // Marca esta ruta como protegida
+    meta: { requiresAuth: true },
   },
   {
-    path: "/estudiantes/detail/:estudianteUrl*", // <-- ¡Cambio clave aquí!
+    path: "/estudiantes/detail/:estudianteUrl*",
     name: "EstudianteDetail",
     component: EstudianteDetail,
-    props: true, // Esto pasa el ':id' como una prop al componente EstudianteDetail
+    props: true,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/estudiantes/edit/:id",
+    name: "EstudianteEdit",
+    component: EstudianteEdit,
+    props: true,
     meta: { requiresAuth: true },
   },
 ];
@@ -38,7 +46,7 @@ const router = createRouter({
 // Guarda de navegación para rutas protegidas
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !localStorage.getItem("authToken")) {
-    next("/login"); // Redirige al login si no está autenticado
+    next("/login");
   } else {
     next();
   }
