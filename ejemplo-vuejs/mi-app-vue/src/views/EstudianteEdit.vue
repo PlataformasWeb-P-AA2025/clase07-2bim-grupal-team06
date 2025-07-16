@@ -1,12 +1,9 @@
-<!-- src/views/EstudianteEdit.vue -->
 <template>
-  <div class="estudiante-edit-container">
+  <div class="form-container">
     <h2>Editar Estudiante</h2>
-    <p v-if="loading">Cargando datos del estudiante...</p>
-    <p v-if="error" class="error-message">{{ error }}</p>
+    <div v-if="loading">Cargando datos del estudiante...</div>
 
-    <!-- Formulario para editar, se muestra cuando los datos del estudiante están cargados -->
-    <form v-if="estudiante" @submit.prevent="actualizarEstudiante">
+    <form v-else @submit.prevent="actualizarEstudiante">
       <div class="form-group">
         <label for="nombre">Nombre:</label>
         <input type="text" id="nombre" v-model="estudiante.nombre" required />
@@ -22,21 +19,19 @@
       </div>
       <div class="form-group">
         <label for="cedula">Cédula:</label>
-        <input type="text" id="cedula" v-model="estudiante.cedula" required />
+        <input type="text" id="cedula" v-model="estudiante.cedula" disabled />
+        <small>La cédula no se puede modificar.</small>
       </div>
       <div class="form-group">
-        <label for="correo">Correo:</label>
+        <label for="correo">Correo Electrónico:</label>
         <input type="email" id="correo" v-model="estudiante.correo" required />
       </div>
 
-      <!-- Botones de acción del formulario -->
-      <div class="form-actions">
-        <button type="submit" class="action-button save">
-          Guardar Cambios
-        </button>
-        <router-link
-          :to="{ name: 'EstudiantesList' }"
-          class="action-button cancel"
+      <div v-if="error" class="error-message">{{ error }}</div>
+
+      <div class="button-group">
+        <button type="submit" class="submit-button">Actualizar Cambios</button>
+        <router-link to="/estudiantes" class="cancel-button"
           >Cancelar</router-link
         >
       </div>
@@ -51,128 +46,149 @@ export default {
   name: "EstudianteEdit",
   props: {
     id: {
+      // El 'id' viene del router como prop
       type: [String, Number],
       required: true,
     },
   },
   data() {
     return {
-      estudiante: null,
+      estudiante: {}, // Empezamos con un objeto vacío
       loading: true,
       error: null,
     };
   },
+  // Usamos 'created' para cargar los datos del estudiante en cuanto el componente se crea
   created() {
     this.fetchEstudiante();
   },
   methods: {
-    // Obtiene los datos del estudiante específico usando el ID de la URL
+    // 1. Método para CARGAR los datos del estudiante desde la API
     async fetchEstudiante() {
+      this.loading = true;
+      this.error = null;
       try {
-        this.loading = true;
-        this.error = null;
+        // Hacemos un GET al endpoint del estudiante específico: 'estudiantes/1/'
         const response = await api.get(`estudiantes/${this.id}/`);
         this.estudiante = response.data;
       } catch (err) {
         console.error("Error al cargar el estudiante:", err.response || err);
-        this.error = "No se pudieron cargar los datos del estudiante.";
+        this.error = "No se pudieron cargar los datos para editar.";
       } finally {
         this.loading = false;
       }
     },
-    // Envía los datos actualizados a la API
-    actualizarEstudiante() {
-      api
-        .put(`estudiantes/${this.id}/`, this.estudiante)
-        .then(() => {
-          alert("Estudiante actualizado con éxito.");
-          this.$router.push({ name: "EstudiantesList" });
-        })
-        .catch((error) => {
-          console.error(
-            "Error al actualizar el estudiante:",
-            error.response.data
-          );
-          alert("Hubo un error al guardar los cambios.");
-        });
+
+    // 2. Método para ENVIAR los datos actualizados a la API
+    async actualizarEstudiante() {
+      this.error = null;
+      try {
+        // Usamos 'put' para actualizar el recurso completo en 'estudiantes/1/'
+        await api.put(`estudiantes/${this.id}/`, this.estudiante);
+
+        alert("¡Estudiante actualizado con éxito!");
+
+        // Redirigimos al usuario de vuelta al listado
+        this.$router.push("/estudiantes");
+      } catch (err) {
+        console.error(
+          "Error al actualizar el estudiante:",
+          err.response || err
+        );
+        if (err.response && err.response.data) {
+          const errores = err.response.data;
+          let mensajesError = "No se pudo actualizar. Errores:\n";
+          for (const campo in errores) {
+            mensajesError += `- ${campo}: ${errores[campo].join(", ")}\n`;
+          }
+          this.error = mensajesError;
+        } else {
+          this.error = "Ocurrió un error inesperado al actualizar.";
+        }
+      }
     },
   },
 };
 </script>
 
 <style scoped>
-/* Estilos basados en EstudianteDetail.vue para consistencia */
-.estudiante-edit-container {
+/* Usamos los mismos estilos que en EstudianteAgregar para consistencia */
+.form-container {
   max-width: 600px;
   margin: 50px auto;
   padding: 20px;
   border: 1px solid #ccc;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
-  text-align: left;
 }
-
 h2 {
   text-align: center;
-  color: #333;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
-
 .form-group {
   margin-bottom: 15px;
 }
-
 .form-group label {
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
-  color: #555;
 }
-
 .form-group input {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
+  padding: 8px;
+  border: 1px solid #ccc;
   border-radius: 4px;
-  box-sizing: border-box; /* Importante para que el padding no afecte el ancho */
+  box-sizing: border-box;
 }
 
-.form-actions {
+/* Estilo para inputs deshabilitados */
+.form-group input:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.form-group small {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.button-group {
   display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 25px;
+  gap: 10px; /* Espacio entre botones */
+  margin-top: 20px;
 }
 
-.action-button {
-  padding: 10px 20px;
+.submit-button,
+.cancel-button {
+  flex: 1; /* Hace que ambos botones ocupen el mismo espacio */
+  display: block;
+  width: 100%;
+  padding: 10px;
+  color: white;
   border: none;
   border-radius: 5px;
-  color: white;
-  text-decoration: none;
   cursor: pointer;
+  font-size: 1rem;
   text-align: center;
-  transition: background-color 0.3s ease;
+  text-decoration: none;
 }
 
-.action-button.save {
-  background-color: #28a745; /* Verde para guardar */
+.submit-button {
+  background-color: #007bff; /* Azul para actualizar */
 }
-.action-button.save:hover {
-  background-color: #218838;
+.submit-button:hover {
+  background-color: #0056b3;
 }
-
-.action-button.cancel {
+.cancel-button {
   background-color: #6c757d; /* Gris para cancelar */
 }
-.action-button.cancel:hover {
+.cancel-button:hover {
   background-color: #5a6268;
 }
 
 .error-message {
   color: red;
-  text-align: center;
-  margin-top: 10px;
+  margin-bottom: 15px;
+  white-space: pre-line;
 }
 </style>
